@@ -1,4 +1,7 @@
 ﻿using PetSpa.API.Data.Entities;
+using PetSpa.API.Helpers;
+using PetSpa.Common.Enums;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -7,10 +10,12 @@ namespace PetSpa.API.Data
     public class SeedDb
     {
         private readonly DataContext _context;
+        private readonly IUserHelper _userHelper;
 
-        public SeedDb(DataContext context)
+        public SeedDb(DataContext context, IUserHelper userHelper)
         {
             _context = context;
+            _userHelper = userHelper;
         }
 
         public async Task SeedAsync()
@@ -20,6 +25,41 @@ namespace PetSpa.API.Data
             await CheckBreedsAsync();
             await CheckDocumentTypesAsync();
             await CheckTreatmentsAsync();
+            await CheckRolesASync();
+            await CheckUserAsync("1010", "brayan", "bedoya", "brayan@yopmail.com", "300 789 9380", "Calle 1l", UserType.admin);
+            await CheckUserAsync("2020", "camila", "toro", "camila@yopmail.com", "320 143 4567", "Calle Luna Calle Sol", UserType.User);
+        }
+
+        private async Task CheckUserAsync(string document, string firstName, string lastName, string email, string phoneNumber, string address, UserType userType)
+        {
+            User user = await _userHelper.GetUserAsync(email);
+            if (user == null)
+            {
+                user = new User 
+                {
+                    Address = address,
+                    Document =document,
+                    DocumentType= _context.DocumentTypes.FirstOrDefault(x => x.Description == "Cédula"),
+                    Email = email,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    PhoneNumber = phoneNumber,
+                    UserName = email,
+                    UserType = userType
+                    
+                };
+
+                await _userHelper.AddUserAsync(user, "123456");
+                await _userHelper.AddUserToRoleAsync(user, userType.ToString());
+
+            }
+        }
+
+        private async Task CheckRolesASync()
+        {
+            await _userHelper.CheckRoleAsync(UserType.admin.ToString());
+            await _userHelper.CheckRoleAsync(UserType.User.ToString());
+
         }
 
         private async Task CheckTreatmentsAsync()
